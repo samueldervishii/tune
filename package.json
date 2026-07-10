@@ -1,0 +1,24 @@
+{
+  "name": "Tune",
+  "version": "0.1.0",
+  "description": "Tune — a sleek desktop companion for Claude Code, wrapping the CLI in a fast, frosted-glass chat interface.",
+  "main": "dist/main/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "tsc -p tsconfig.renderer.json",
+    "copy:assets": "cp src/renderer/index.html src/renderer/styles.css dist/renderer/ && (cp logo.png logo-rounded.png dist/renderer/ 2>/dev/null || true)",
+    "build": "npm run build:main && npm run build:renderer && npm run copy:assets",
+    "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron .",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^33.0.0",
+    "typescript": "^5.6.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

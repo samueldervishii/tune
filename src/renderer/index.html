@@ -1,0 +1,101 @@
+<!--
+  Loaded via loadFile() from the main process. A strict CSP blocks any remote
+  content and inline scripts; only our local, bundled renderer script runs.
+-->
+<meta charset="utf-8" />
+<meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+/>
+<title>Tune</title>
+<link rel="stylesheet" href="./styles.css" />
+
+<div id="app">
+  <header id="titlebar">
+    <!-- Left cluster: hamburger menu + tool-panel toggle (no-drag) -->
+    <button id="menu-btn" class="icon-btn" type="button" title="Menu" aria-label="Menu">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    </button>
+    <button id="toggle-tools" class="icon-btn" type="button" title="Toggle tool activity" aria-label="Toggle tool activity">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3" />
+        <line x1="10" y1="3" x2="10" y2="13" stroke="currentColor" stroke-width="1.3" />
+      </svg>
+    </button>
+
+    <span class="dot"></span>
+    <h1>Tune</h1>
+
+    <!-- Right cluster -->
+    <button id="pick-dir" class="dirbtn" type="button" title="Change working directory">
+      <span class="dir-prefix">dir:</span>
+      <span id="dir-label">…</span>
+    </button>
+    <span id="status" class="status idle">ready</span>
+
+    <div class="window-controls">
+      <button id="win-min" class="win-btn" type="button" title="Minimize" aria-label="Minimize">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" stroke-width="1.3" />
+        </svg>
+      </button>
+      <button id="win-max" class="win-btn" type="button" title="Maximize" aria-label="Maximize">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          <rect x="3.5" y="3.5" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.3" />
+        </svg>
+      </button>
+      <button id="win-close" class="win-btn danger" type="button" title="Close" aria-label="Close">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hamburger dropdown -->
+  <div id="menu-dropdown" class="dropdown" hidden>
+    <button class="menu-item" data-action="new" type="button">New conversation</button>
+    <button class="menu-item" data-action="pick-dir" type="button">Change working directory</button>
+    <button class="menu-item" data-action="toggle-tools" type="button">Toggle tool activity</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-action="reload" type="button">Reload</button>
+    <button class="menu-item" data-action="devtools" type="button">Toggle developer tools</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-action="help" type="button">Help</button>
+    <button class="menu-item" data-action="about" type="button">About Tune</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item" data-action="quit" type="button">Quit</button>
+  </div>
+
+  <main id="panes">
+    <section id="chat-pane">
+      <div id="chat" aria-live="polite">
+        <div id="empty-state">
+          <img class="empty-logo" src="./logo.png" alt="Tune" />
+          <div class="empty-title">Hello, Samuel</div>
+          <div class="empty-sub">Ask Claude anything about the code in <span id="empty-dir">this folder</span>.</div>
+        </div>
+      </div>
+      <form id="composer">
+        <div class="composer-row">
+          <textarea
+            id="input"
+            rows="1"
+            placeholder="Ask Claude…  (Enter to send, Shift+Enter for newline)"
+          ></textarea>
+          <button id="stop" type="button" class="stop" hidden>Stop</button>
+          <button id="send" type="submit">Send</button>
+        </div>
+      </form>
+    </section>
+
+    <aside id="tools-pane">
+      <h2>Tool activity</h2>
+      <div id="tool-log"></div>
+    </aside>
+  </main>
+</div>
+
+<script type="module" src="./renderer.js"></script>

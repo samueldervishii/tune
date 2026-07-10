@@ -1,0 +1,541 @@
+/* ------------------------------------------------------------------ *
+ * Dark blue frosted glass, Windows-10 blue accent.
+ * The window fills edge to edge; the "glass" is faked by layering
+ * translucent panels (backdrop-filter blur) over a blue gradient base,
+ * so it renders the same on every OS with no compositor dependency.
+ * ------------------------------------------------------------------ */
+:root {
+  --accent: #0078d7; /* Windows 10 blue */
+  --accent-hover: #1a8ae2;
+  --accent-deep: #005a9e;
+  --text: #eaf1fb;
+  --muted: #9fb2cc;
+  --danger: #ff7b7b;
+  --ok: #5fd08a;
+
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass-strong: rgba(255, 255, 255, 0.09);
+  --hairline: rgba(255, 255, 255, 0.14);
+  --hairline-soft: rgba(255, 255, 255, 0.08);
+
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  /* Deep navy base with blue light-blooms — this is the layer the glass blurs. */
+  background:
+    radial-gradient(900px 600px at 12% -5%, rgba(0, 120, 215, 0.45), transparent 60%),
+    radial-gradient(800px 700px at 105% 20%, rgba(0, 90, 158, 0.5), transparent 55%),
+    radial-gradient(700px 600px at 40% 115%, rgba(24, 138, 226, 0.35), transparent 55%),
+    linear-gradient(160deg, #0a1730 0%, #0b1d3c 45%, #0a1832 100%);
+}
+
+#app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Title bar (frameless — this whole strip drags the window) */
+#titlebar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hairline-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+/* Anything interactive in the title bar must opt out of the drag region. */
+#titlebar button {
+  -webkit-app-region: no-drag;
+}
+
+/* Small icon buttons (menu, panel toggle) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-btn:hover,
+.icon-btn.active {
+  background: var(--glass-strong);
+  color: var(--text);
+}
+
+/* Window controls (minimize / maximize / close) */
+.window-controls {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+}
+.win-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.win-btn:hover {
+  background: var(--glass-strong);
+  color: var(--text);
+}
+.win-btn.danger:hover {
+  background: #e03434;
+  color: #fff;
+}
+#titlebar .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px 1px rgba(0, 120, 215, 0.7);
+}
+#titlebar h1 {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+/* Working-directory button */
+.dirbtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 340px;
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--glass-strong);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dirbtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(0, 120, 215, 0.14);
+}
+.dirbtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dirbtn .dir-prefix {
+  color: var(--muted);
+}
+#dir-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status pill */
+.status {
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 20px;
+  color: var(--muted);
+  background: var(--glass-strong);
+  border: 1px solid var(--hairline-soft);
+}
+.status.busy {
+  color: #fff;
+  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 120, 215, 0.45);
+}
+
+/* Two-pane layout */
+#panes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+#chat-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg {
+  max-width: 80%;
+  padding: 11px 14px;
+  line-height: 1.55;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 14px;
+}
+.msg.user {
+  align-self: flex-end;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0, 120, 215, 0.55), rgba(0, 90, 158, 0.5));
+  border: 1px solid rgba(120, 190, 255, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 90, 158, 0.35);
+}
+.msg.assistant {
+  align-self: flex-start;
+  background: var(--glass-strong);
+  border: 1px solid var(--hairline);
+  backdrop-filter: blur(8px);
+}
+.note {
+  align-self: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--hairline-soft);
+}
+.note.error {
+  color: var(--danger);
+  border-color: rgba(255, 123, 123, 0.4);
+}
+
+/* Composer — no bar/background; the centered input row floats at the bottom */
+#composer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 14px;
+}
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  max-width: 680px;
+}
+#input {
+  flex: 1;
+  resize: none;
+  min-height: 44px;
+  max-height: 168px;
+  padding: 12px 14px;
+  line-height: 1.4;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: rgba(10, 20, 40, 0.55);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  overflow-y: auto;
+  backdrop-filter: blur(6px);
+}
+#input::placeholder {
+  color: var(--muted);
+}
+#input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 120, 215, 0.25);
+}
+#input:disabled {
+  opacity: 0.6;
+}
+
+#send {
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--accent-hover), var(--accent-deep));
+  box-shadow: 0 6px 16px rgba(0, 120, 215, 0.4);
+}
+#send:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+#send:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+#stop {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 123, 123, 0.6);
+  background: transparent;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+#stop:hover {
+  background: rgba(255, 123, 123, 0.12);
+}
+
+/* Tool activity pane */
+#tools-pane {
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--hairline-soft);
+  background: rgba(255, 255, 255, 0.02);
+}
+#tools-pane h2 {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+#tool-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tool {
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--muted);
+  border-radius: 12px;
+  background: var(--glass);
+  backdrop-filter: blur(8px);
+  padding: 10px 12px;
+}
+.tool.pending {
+  border-left-color: var(--accent);
+  box-shadow: 0 0 16px rgba(0, 120, 215, 0.2);
+}
+.tool.done {
+  border-left-color: var(--ok);
+}
+.tool.failed {
+  border-left-color: var(--danger);
+}
+.tool-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.tool-input,
+.tool-result {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 5px 0 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.tool-result {
+  color: var(--text);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+}
+
+/* Hamburger dropdown */
+.dropdown {
+  position: absolute;
+  top: 46px;
+  left: 8px;
+  z-index: 50;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: rgba(16, 30, 56, 0.85);
+  backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+.dropdown[hidden] {
+  display: none;
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: rgba(0, 120, 215, 0.22);
+}
+.menu-sep {
+  height: 1px;
+  margin: 5px 6px;
+  background: var(--hairline-soft);
+}
+
+/* Centered empty-state greeting */
+#empty-state {
+  margin: auto;
+  text-align: center;
+  padding: 24px;
+  color: var(--text);
+}
+#empty-state[hidden] {
+  display: none;
+}
+.empty-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  border-radius: 24px;
+  object-fit: cover;
+  border: 1px solid var(--hairline);
+  box-shadow: 0 14px 40px rgba(0, 120, 215, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.empty-title {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+}
+.empty-sub {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+#empty-dir {
+  color: var(--text);
+}
+
+/* Collapsed tool activity panel */
+#app.tools-collapsed #tools-pane {
+  display: none;
+}
+
+/* Rendered markdown inside assistant bubbles */
+.msg.markdown {
+  white-space: normal;
+}
+.msg.markdown > :first-child {
+  margin-top: 0;
+}
+.msg.markdown > :last-child {
+  margin-bottom: 0;
+}
+.msg.markdown p {
+  margin: 0 0 10px;
+}
+.msg.markdown h3,
+.msg.markdown h4,
+.msg.markdown h5 {
+  margin: 12px 0 6px;
+  line-height: 1.3;
+}
+.msg.markdown h3 {
+  font-size: 16px;
+}
+.msg.markdown h4 {
+  font-size: 14.5px;
+}
+.msg.markdown h5 {
+  font-size: 13px;
+  color: var(--muted);
+}
+.msg.markdown ul,
+.msg.markdown ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+.msg.markdown li {
+  margin: 2px 0;
+}
+.msg.markdown a {
+  color: #7fb8ff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.msg.markdown code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.msg.markdown pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid var(--hairline-soft);
+  overflow-x: auto;
+}
+.msg.markdown pre code {
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+.msg.markdown blockquote {
+  margin: 8px 0;
+  padding: 2px 12px;
+  color: var(--muted);
+  border-left: 3px solid var(--hairline);
+}
+.msg.markdown strong {
+  font-weight: 650;
+}
