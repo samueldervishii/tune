@@ -1,6 +1,6 @@
 {
   "name": "Tune",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Tune — a sleek desktop companion for Claude Code, wrapping the CLI in a fast, frosted-glass chat interface.",
   "main": "dist/main/main.js",
   "author": "Samuel Dervishii <samueldervishi03@gmail.com>",
@@ -17,8 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check",
-    "dist": "npm run build && electron-builder --linux",
-    "dist:deb": "npm run build && electron-builder --linux deb"
+    "dist": "npm run build && electron-builder --linux --publish never",
+    "dist:deb": "npm run build && electron-builder --linux deb --publish never"
   },
   "build": {
     "appId": "com.poke.tune",
