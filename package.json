@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Tune — a sleek desktop companion for Claude Code, wrapping the CLI in a fast, frosted-glass chat interface.",
   "main": "dist/main/main.js",
-  "author": "",
+  "author": "Samuel Dervishii <samueldervishi03@gmail.com>",
   "license": "MIT",
   "scripts": {
     "build:main": "tsc -p tsconfig.main.json",
@@ -11,17 +11,42 @@
     "copy:assets": "cp src/renderer/index.html src/renderer/styles.css dist/renderer/ && (cp logo.png logo-rounded.png dist/renderer/ 2>/dev/null || true)",
     "build": "npm run build:main && npm run build:renderer && npm run copy:assets",
     "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron .",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist release",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check"
+    "check": "npm run typecheck && npm run lint && npm run format:check",
+    "dist": "npm run build && electron-builder --linux",
+    "dist:deb": "npm run build && electron-builder --linux deb"
+  },
+  "build": {
+    "appId": "com.poke.tune",
+    "productName": "Tune",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Development",
+      "syncDesktopName": true,
+      "icon": "logo-rounded.png",
+      "maintainer": "Samuel",
+      "synopsis": "A frosted-glass desktop app for the Claude Code CLI",
+      "description": "Tune wraps the Claude Code CLI in a fast, frosted-glass chat interface."
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
     "electron": "^33.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.5",

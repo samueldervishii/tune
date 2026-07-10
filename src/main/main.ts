@@ -1,10 +1,26 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeImage } from "electron";
 import * as path from "node:path";
+import { existsSync } from "node:fs";
 import { ClaudeSession } from "./claude";
+
+// The default working directory: Downloads, not the home folder — home holds
+// sensitive files (~/.ssh, ~/.config, credentials) we don't want exposed.
+function defaultWorkingDir(): string {
+  const downloads = app.getPath("downloads");
+  return existsSync(downloads) ? downloads : app.getPath("home");
+}
 
 // GitHub page opened by the Help menu item — the issues tracker, so users land
 // where they can report problems or ask for help.
 const GITHUB_URL = "https://github.com/samueldervishii/tune/issues";
+
+// Keep a stray async error from tearing the whole app down — log and continue.
+process.on("unhandledRejection", (reason) => {
+  console.error("[main] unhandled rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[main] uncaught exception:", err);
+});
 
 let win: BrowserWindow | null = null;
 let session: ClaudeSession | null = null;
@@ -40,7 +56,7 @@ function createWindow(): void {
     console.error("[renderer] gone:", details.reason),
   );
 
-  session = new ClaudeSession(app.getPath("home"));
+  session = new ClaudeSession(defaultWorkingDir());
   session.on("event", (event) => {
     if (win && !win.isDestroyed()) {
       win.webContents.send("claude:event", event);
@@ -75,7 +91,7 @@ ipcMain.on("claude:new-session", () => {
 // inside the app window. The scheme is validated before handing it to the OS.
 ipcMain.on("open-external", (_event, url: unknown) => {
   if (typeof url === "string" && /^https?:\/\//i.test(url)) {
-    shell.openExternal(url);
+    void shell.openExternal(url).catch((e) => console.error("[main] openExternal failed:", e));
   }
 });
 
@@ -100,7 +116,9 @@ ipcMain.on("app:about", () => {
 ipcMain.on("app:help", () => {
   if (!win) return;
   if (GITHUB_URL) {
-    shell.openExternal(GITHUB_URL);
+    void shell
+      .openExternal(GITHUB_URL)
+      .catch((e) => console.error("[main] openExternal failed:", e));
   } else {
     void dialog.showMessageBox(win, {
       type: "info",
@@ -140,7 +158,7 @@ ipcMain.on("window:control", (_event, action: unknown) => {
   }
 });
 
-ipcMain.handle("claude:get-cwd", () => session?.workingDir ?? app.getPath("home"));
+ipcMain.handle("claude:get-cwd", () => session?.workingDir ?? defaultWorkingDir());
 
 ipcMain.handle("claude:pick-cwd", async () => {
   if (!win || !session) return null;
@@ -149,13 +167,45 @@ ipcMain.handle("claude:pick-cwd", async () => {
   if (session.busy) return session.workingDir;
 
   const result = await dialog.showOpenDialog(win, {
-    title: "Choose working directory",
+    title: "Choose a folder for Claude to read",
     defaultPath: session.workingDir,
-    properties: ["openDirectory", "createDirectory"],
+    properties: ["openDirectory"],
   });
   if (result.canceled || result.filePaths.length === 0) return null;
-
   const dir = result.filePaths[0];
+
+  // Refuse sensitive roots outright — the home folder and filesystem root hold
+  // credentials and config that should never be exposed to a read tool.
+  if (dir === app.getPath("home") || dir === path.parse(dir).root) {
+    await dialog.showMessageBox(win, {
+      type: "warning",
+      title: "Folder not allowed",
+      message: "That folder can't be used",
+      detail:
+        "For safety, Tune won't grant access to your home folder or a filesystem root — " +
+        "they contain sensitive files. Choose a specific project subfolder instead.",
+      buttons: ["OK"],
+      noLink: true,
+    });
+    return null;
+  }
+
+  // Require explicit permission before granting read access to a new folder.
+  const confirm = await dialog.showMessageBox(win, {
+    type: "question",
+    title: "Grant folder access?",
+    message: `Allow Claude to read files in “${path.basename(dir)}”?`,
+    detail:
+      `${dir}\n\n` +
+      "Claude will be able to read, search, and list files in this folder and its " +
+      "subfolders (read-only). It cannot write files or run commands.",
+    buttons: ["Cancel", "Allow"],
+    defaultId: 1,
+    cancelId: 0,
+    noLink: true,
+  });
+  if (confirm.response !== 1) return null;
+
   session.setWorkingDir(dir);
   return dir;
 });

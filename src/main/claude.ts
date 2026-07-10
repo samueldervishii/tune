@@ -1,18 +1,52 @@
 import { spawn, type ChildProcessByStdio } from "node:child_process";
 import { EventEmitter } from "node:events";
-import type { Readable } from "node:stream";
+import { existsSync } from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { Readable, Writable } from "node:stream";
 import type { AppEvent } from "../shared/types";
 
-// stdin is ignored, stdout+stderr are piped, hence this exact process shape.
-type ClaudeChild = ChildProcessByStdio<null, Readable, Readable>;
+// stdin is piped (we write the prompt to it), stdout+stderr are piped too.
+type ClaudeChild = ChildProcessByStdio<Writable, Readable, Readable>;
 
 // v1 allowlist: read-only tools only. Anything not in this list is auto-denied
 // by the CLI in headless mode, so Claude physically cannot Bash/Write/Edit.
 const ALLOWED_TOOLS = ["Read", "Glob", "Grep"];
 
-// Name of the CLI binary. Assumed to be on PATH and already authenticated via
-// `claude /login`. We never touch ANTHROPIC_API_KEY.
-const CLAUDE_BIN = "claude";
+// Directories where the Claude CLI is commonly installed. A desktop-launched
+// app usually does NOT inherit ~/.local/bin on PATH, so we look here explicitly.
+function claudeSearchDirs(): string[] {
+  const home = os.homedir();
+  return [
+    path.join(home, ".local/bin"),
+    path.join(home, ".claude/local"),
+    "/usr/local/bin",
+    "/usr/bin",
+    path.join(home, ".bun/bin"),
+    path.join(home, ".npm-global/bin"),
+  ];
+}
+
+// Resolve the Claude CLI binary path. Override with TUNE_CLAUDE_PATH; otherwise
+// probe the known locations, falling back to the bare name (relies on PATH).
+let cachedClaudeBin: string | null = null;
+function resolveClaudeBin(): string {
+  if (cachedClaudeBin) return cachedClaudeBin;
+  const override = process.env.TUNE_CLAUDE_PATH;
+  if (override && existsSync(override)) return (cachedClaudeBin = override);
+  for (const dir of claudeSearchDirs()) {
+    const candidate = path.join(dir, "claude");
+    if (existsSync(candidate)) return (cachedClaudeBin = candidate);
+  }
+  return (cachedClaudeBin = "claude");
+}
+
+// A PATH that includes the common CLI locations, so the CLI and anything it
+// shells out to resolve even when the app was launched from a menu.
+function augmentedPath(): string {
+  const current = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  return Array.from(new Set([...claudeSearchDirs(), ...current])).join(path.delimiter);
+}
 
 type ClaudeEvents = {
   event: [AppEvent];
@@ -69,7 +103,6 @@ export class ClaudeSession extends EventEmitter<ClaudeEvents> {
 
     const args = [
       "--print",
-      prompt,
       "--output-format",
       "stream-json",
       "--verbose", // required alongside stream-json in --print mode
@@ -84,20 +117,22 @@ export class ClaudeSession extends EventEmitter<ClaudeEvents> {
 
     this.emitEvent({ kind: "status", state: "thinking" });
 
+    const bin = resolveClaudeBin();
     let child: ClaudeChild;
     try {
-      child = spawn(CLAUDE_BIN, args, {
+      child = spawn(bin, args, {
         cwd: this.cwd,
         // Pass through the existing environment so the CLI finds its own stored
-        // credentials. We deliberately never set ANTHROPIC_API_KEY here.
-        env: { ...process.env },
-        stdio: ["ignore", "pipe", "pipe"],
+        // credentials (never set ANTHROPIC_API_KEY), but widen PATH so a
+        // menu-launched app can still locate `claude` and its dependencies.
+        env: { ...process.env, PATH: augmentedPath() },
+        stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (err) {
       this.child = null;
       this.emitEvent({
         kind: "error",
-        message: `Failed to launch '${CLAUDE_BIN}': ${(err as Error).message}`,
+        message: `Failed to launch '${bin}': ${(err as Error).message}`,
       });
       this.emitEvent({ kind: "status", state: "idle" });
       return;
@@ -105,6 +140,12 @@ export class ClaudeSession extends EventEmitter<ClaudeEvents> {
 
     this.child = child;
     this.stdoutBuffer = "";
+
+    // Deliver the prompt on stdin so its content is never parsed as CLI flags
+    // (e.g. a prompt beginning with "-"). Swallow EPIPE if the process is gone.
+    child.stdin.on("error", () => {});
+    child.stdin.write(prompt);
+    child.stdin.end();
 
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => this.onStdout(chunk));
@@ -119,7 +160,7 @@ export class ClaudeSession extends EventEmitter<ClaudeEvents> {
       this.child = null;
       this.emitEvent({
         kind: "error",
-        message: `Failed to launch '${CLAUDE_BIN}': ${err.message}. Is the CLI installed and on PATH?`,
+        message: `Failed to launch '${bin}': ${err.message}. Is the Claude CLI installed? (set TUNE_CLAUDE_PATH to its full path)`,
       });
       this.emitEvent({ kind: "status", state: "idle" });
     });

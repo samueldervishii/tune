@@ -375,9 +375,10 @@ composer.addEventListener("submit", (e) => {
   submit();
 });
 
-// Enter sends, Shift+Enter inserts a newline.
+// Enter sends, Shift+Enter inserts a newline. Ignore Enter while an IME
+// composition is in progress (e.g. accented or CJK input).
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
     e.preventDefault();
     submit();
   }

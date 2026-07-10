@@ -1,7 +1,7 @@
 node_modules/
 dist/
+release/
+build/
 *.log
 .DS_Store
 design-preview.html
-logo.png
-logo-rounded.png

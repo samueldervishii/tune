@@ -1,0 +1,60 @@
+name: Release
+
+# Manually triggered. Pick the semver bump; the version in package.json is the
+# single source of truth — it's bumped here, tagged, and the built .deb is
+# attached to a GitHub Release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump (patch = bug fixes, minor = features, major = breaking)"
+        type: choice
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Full install here (no ELECTRON_SKIP_BINARY_DOWNLOAD) — packaging needs Electron.
+      - run: npm ci
+
+      - run: npm run check
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          NEW_VERSION=$(npm version ${{ inputs.bump }} -m "Release v%s")
+          echo "tag=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Push commit and tag
+        run: git push --follow-tags
+
+      - name: Build .deb
+        run: npm run dist:deb
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          files: release/*.deb
+          generate_release_notes: true
