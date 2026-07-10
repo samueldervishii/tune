@@ -1,6 +1,6 @@
 {
   "name": "Tune",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tune — a sleek desktop companion for Claude Code, wrapping the CLI in a fast, frosted-glass chat interface.",
   "main": "dist/main/main.js",
   "author": "Samuel Dervishii <samueldervishi03@gmail.com>",
