@@ -249,9 +249,7 @@ function stringifyToolResult(content: unknown): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
-      .map((block: any) =>
-        typeof block?.text === "string" ? block.text : JSON.stringify(block),
-      )
+      .map((block: any) => (typeof block?.text === "string" ? block.text : JSON.stringify(block)))
       .join("\n");
   }
   if (content == null) return "";

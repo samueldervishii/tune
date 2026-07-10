@@ -32,7 +32,12 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Ubuntu, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Ubuntu,
+    sans-serif;
   color: var(--text);
   overflow: hidden;
   /* Deep navy base with blue light-blooms — this is the layer the glass blurs. */
@@ -142,7 +147,9 @@ body {
   color: var(--text);
   font-size: 12.5px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 .dirbtn:hover:not(:disabled) {
   border-color: var(--accent);
@@ -445,7 +452,9 @@ body {
   border-radius: 24px;
   object-fit: cover;
   border: 1px solid var(--hairline);
-  box-shadow: 0 14px 40px rgba(0, 120, 215, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 14px 40px rgba(0, 120, 215, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .empty-title {
   font-size: 22px;

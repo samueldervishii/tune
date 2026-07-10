@@ -113,7 +113,7 @@ function renderInline(text: string): string {
   const codes: string[] = [];
   s = s.replace(/`([^`]+)`/g, (_m, c: string) => {
     codes.push(c);
-    return `\u0000${codes.length - 1}\u0000`;
+    return `\uE000${codes.length - 1}\uE000`;
   });
 
   // Bold, then italic (bold first so ** wins over *).
@@ -129,7 +129,7 @@ function renderInline(text: string): string {
   );
 
   // Restore inline code (already escaped).
-  s = s.replace(/\u0000(\d+)\u0000/g, (_m, n: string) => `<code>${codes[Number(n)]}</code>`);
+  s = s.replace(/\uE000(\d+)\uE000/g, (_m, n: string) => `<code>${codes[Number(n)]}</code>`);
   return s;
 }
 

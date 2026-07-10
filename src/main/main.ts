@@ -106,7 +106,8 @@ ipcMain.on("app:help", () => {
       type: "info",
       title: "Help",
       message: "Project page coming soon",
-      detail: "The Tune GitHub page isn't published yet. Help will open it here once it's available.",
+      detail:
+        "The Tune GitHub page isn't published yet. Help will open it here once it's available.",
       buttons: ["OK"],
     });
   }
@@ -121,7 +122,8 @@ ipcMain.on("window:control", (_event, action: unknown) => {
       win.minimize();
       break;
     case "maximize":
-      win.isMaximized() ? win.unmaximize() : win.maximize();
+      if (win.isMaximized()) win.unmaximize();
+      else win.maximize();
       break;
     case "close":
       win.close();

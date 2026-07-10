@@ -44,21 +44,11 @@ export type ErrorEvent = {
 };
 
 export type AppEvent =
-  | AssistantTextEvent
-  | ToolCallEvent
-  | ToolResultEvent
-  | ResultEvent
-  | StatusEvent
-  | ErrorEvent;
+  AssistantTextEvent | ToolCallEvent | ToolResultEvent | ResultEvent | StatusEvent | ErrorEvent;
 
 // Fixed set of window/app actions the renderer may request from main.
 export type WindowAction =
-  | "minimize"
-  | "maximize"
-  | "close"
-  | "reload"
-  | "toggle-devtools"
-  | "quit";
+  "minimize" | "maximize" | "close" | "reload" | "toggle-devtools" | "quit";
 
 // The surface exposed to the renderer via contextBridge. This is the ONLY thing
 // the web page can call — no Node, no ipcRenderer, no filesystem.

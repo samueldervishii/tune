@@ -3,6 +3,5 @@ dist/
 *.log
 .DS_Store
 design-preview.html
-package-lock.json
 logo.png
 logo-rounded.png
